@@ -4,8 +4,8 @@
 
 Experimental DownloadAndLoadHyVideoTextEncoder Node:
 - Load model from LLM folder.
-- Norm "Slider"
-- Support for LLava and nLLava model_type.
+- Norm "Slider".
+- Support for LLava and mLLava model_type.
 
 # Update
 
