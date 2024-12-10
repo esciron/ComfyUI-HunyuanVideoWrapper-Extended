@@ -2,6 +2,11 @@
 
 ## WORK IN PROGRESS
 
+Experimental DownloadAndLoadHyVideoTextEncoder Node:
+- Load model from LLM folder.
+- Norm "Slider"
+- Support for LLava and nLLava model_type.
+
 # Update
 
 Scaled dot product attention (sdpa) should now be working (only tested on Windows, torch 2.5.1+cu124 on 4090), sageattention is still recommended for speed, but should not be necessary anymore making installation much easier.
