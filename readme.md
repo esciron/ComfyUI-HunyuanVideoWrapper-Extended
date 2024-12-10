@@ -8,7 +8,7 @@ Experimental DownloadAndLoadHyVideoTextEncoder Node:
 - Support for any llama model type LLM.
 - Support for LLava and mLLava model_type.
 
-To install new LLMs for the text encoder, go to ComfyUI\models\LLM - open cmd and paste the git link from the model's huggingface page. Ex: git clone https://huggingface.co/Kijai/llava-llama-3-8b-text-encoder-tokenizer
+To install new LLMs for the text encoder, go to ComfyUI\models\LLM - open cmd in the folder and paste the git link from the model's huggingface page. Ex: git clone https://huggingface.co/Kijai/llava-llama-3-8b-text-encoder-tokenizer
 
 # Update
 
