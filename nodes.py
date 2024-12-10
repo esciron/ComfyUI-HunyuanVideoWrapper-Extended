@@ -416,7 +416,7 @@ class DownloadAndLoadHyVideoTextEncoder:
                 "apply_final_norm": ("BOOLEAN", {"default": False}),
                 "hidden_state_skip_layer": ("INT", {"default": 2}),
                 "quantization": (['disabled', 'bnb_nf4'], {"default": 'disabled'}),
-                "norm_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.1}),  # Add slider for norm_strength
+                "norm_strength": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.1}),  # Add slider for norm_strength
             }
         }
 
