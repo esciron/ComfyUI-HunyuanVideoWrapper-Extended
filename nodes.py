@@ -401,19 +401,22 @@ class HyVideoTorchCompileSettings:
 class DownloadAndLoadHyVideoTextEncoder:
     @classmethod
     def INPUT_TYPES(s):
+        llm_models = []
+        llm_folder = os.path.join(folder_paths.models_dir, "LLM")
+        if os.path.exists(llm_folder):
+            llm_models = [f for f in os.listdir(llm_folder) if os.path.isdir(os.path.join(llm_folder, f))]
+
         return {
             "required": {
-                "llm_model": (["Kijai/llava-llama-3-8b-text-encoder-tokenizer",],),
+                "llm_model": (llm_models,),
                 "clip_model": (["disabled","openai/clip-vit-large-patch14",],),
-                
-                 "precision": (["fp16", "fp32", "bf16"],
-                    {"default": "bf16"}
-                ),
+                "precision": (["fp16", "fp32", "bf16"], {"default": "bf16"}),
             },
             "optional": {
                 "apply_final_norm": ("BOOLEAN", {"default": False}),
                 "hidden_state_skip_layer": ("INT", {"default": 2}),
                 "quantization": (['disabled', 'bnb_nf4'], {"default": 'disabled'}),
+                "norm_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.1}),  # Add slider for norm_strength
             }
         }
 
@@ -423,7 +426,7 @@ class DownloadAndLoadHyVideoTextEncoder:
     CATEGORY = "HunyuanVideoWrapper"
     DESCRIPTION = "Loads Hunyuan text_encoder model from 'ComfyUI/models/LLM'"
 
-    def loadmodel(self, llm_model, clip_model, precision, apply_final_norm=False, hidden_state_skip_layer=2, quantization="disabled"):
+    def loadmodel(self, llm_model, clip_model, precision, apply_final_norm=False, hidden_state_skip_layer=2, quantization="disabled", norm_strength=0.5):
         
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
@@ -473,15 +476,18 @@ class DownloadAndLoadHyVideoTextEncoder:
                 local_dir=base_path,
                 local_dir_use_symlinks=False,
             )
-       
+
+        text_encoder_type = "llava" if "llava" in llm_model else "llm"
+
         text_encoder = TextEncoder(
             text_encoder_path=base_path,
-            text_encoder_type="llm",
+            text_encoder_type=text_encoder_type,
             max_length=256,
             text_encoder_precision=precision,
-            tokenizer_type="llm",
+            tokenizer_type=text_encoder_type,
             hidden_state_skip_layer=hidden_state_skip_layer,
             apply_final_norm=apply_final_norm,
+            norm_strength=norm_strength,  # Pass norm_strength to TextEncoder
             logger=log,
             device=device,
             dtype=dtype,
