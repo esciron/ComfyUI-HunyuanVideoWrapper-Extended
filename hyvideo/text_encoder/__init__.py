@@ -14,6 +14,8 @@ from ..constants import PRECISION_TO_TYPE
 def use_default(value, default):
     return value if value is not None else default
 
+import os
+import json
 
 def load_text_encoder(
     text_encoder_type,
@@ -31,16 +33,35 @@ def load_text_encoder(
             f"Loading text encoder model ({text_encoder_type}) from: {text_encoder_path}"
         )
 
-    if text_encoder_type == "clipL":
+    config_path = os.path.join(text_encoder_path, "config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        model_type = config.get("model_type", text_encoder_type)
+    else:
+        model_type = text_encoder_type
+
+    if model_type == "llava":
+        from transformers import LlavaForConditionalGeneration, AutoProcessor
+        processor = AutoProcessor.from_pretrained(text_encoder_path)
+        text_encoder = LlavaForConditionalGeneration.from_pretrained(text_encoder_path, torch_dtype=dtype, device_map=0)
+    elif model_type == "clipL":
         text_encoder = CLIPTextModel.from_pretrained(text_encoder_path)
         text_encoder.final_layer_norm = text_encoder.text_model.final_layer_norm
-    elif text_encoder_type == "llm":
+    elif model_type == "llm" or model_type == "llama":
         text_encoder = AutoModel.from_pretrained(
             text_encoder_path, 
             low_cpu_mem_usage=True,
             quantization_config=quantization_config
         )
         text_encoder.final_layer_norm = text_encoder.norm
+    elif model_type == "mllama":
+        from transformers import MllamaForConditionalGeneration
+        text_encoder = MllamaForConditionalGeneration.from_pretrained(
+            text_encoder_path,
+            torch_dtype=dtype,
+            quantization_config=quantization_config
+        )
     else:
         raise ValueError(f"Unsupported text encoder type: {text_encoder_type}")
     # from_pretrained will ensure that the model is in eval mode.
@@ -67,14 +88,30 @@ def load_tokenizer(
     if logger is not None:
         logger.info(f"Loading tokenizer ({tokenizer_type}) from: {tokenizer_path}")
 
-    if tokenizer_type == "clipL":
+    config_path = os.path.join(tokenizer_path, "config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        model_type = config.get("model_type", tokenizer_type)
+    else:
+        model_type = tokenizer_type
+
+    if model_type == "llava":
+        from transformers import AutoProcessor
+        processor = AutoProcessor.from_pretrained(tokenizer_path)
+        tokenizer = processor.tokenizer
+    elif model_type == "clipL":
         tokenizer = CLIPTokenizer.from_pretrained(tokenizer_path, max_length=77)
-    elif tokenizer_type == "llm":
+    elif model_type == "llm" or model_type == "llama" or model_type == "mllama":
         tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_path, padding_side=padding_side
         )
     else:
-        raise ValueError(f"Unsupported tokenizer type: {tokenizer_type}")
+        raise ValueError(f"Unsupported tokenizer type: {model_type}")
+
+    # Ensure that if the tokenizer does not have a pad token, we set it to eos_token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     return tokenizer, tokenizer_path
 
@@ -117,6 +154,7 @@ class TextEncoder(nn.Module):
         input_max_length: Optional[int] = None,
         hidden_state_skip_layer: Optional[int] = None,
         apply_final_norm: bool = False,
+        norm_strength: float = 0.5,  # Default value for norm_strength
         reproduce: bool = False,
         logger=None,
         device=None,
@@ -141,6 +179,7 @@ class TextEncoder(nn.Module):
         )
         self.hidden_state_skip_layer = hidden_state_skip_layer
         self.apply_final_norm = apply_final_norm
+        self.norm_strength = norm_strength  # Store the norm_strength
         self.reproduce = reproduce
         self.logger = logger
 
@@ -148,7 +187,9 @@ class TextEncoder(nn.Module):
             self.output_key = output_key or "last_hidden_state"
         elif "clip" in text_encoder_type:
             self.output_key = output_key or "pooler_output"
-        elif "llm" in text_encoder_type or "glm" in text_encoder_type:
+        elif "llm" in text_encoder_type or "glm" in text_encoder_type or "llama" in text_encoder_type or "mllama" in text_encoder_type:
+            self.output_key = output_key or "last_hidden_state"
+        elif "llava" in text_encoder_type:
             self.output_key = output_key or "last_hidden_state"
         else:
             raise ValueError(f"Unsupported text encoder type: {text_encoder_type}")
@@ -183,7 +224,7 @@ class TextEncoder(nn.Module):
         Args:
             text (str): Input text.
             template (str or list): Template string or list of chat conversation.
-            prevent_empty_text (bool): If Ture, we will prevent the user text from being empty
+            prevent_empty_text (bool): If True, we will prevent the user text from being empty
                 by adding a space. Defaults to True.
         """
         if isinstance(template, str):
@@ -284,8 +325,9 @@ class TextEncoder(nn.Module):
             last_hidden_state = outputs.hidden_states[-(hidden_state_skip_layer + 1)]
             # Real last hidden state already has layer norm applied. So here we only apply it
             # for intermediate layers.
-            if hidden_state_skip_layer > 0 and self.apply_final_norm:
-                last_hidden_state = self.model.final_layer_norm(last_hidden_state)
+            if hidden_state_skip_layer > 0 and self.apply_final_norm and hasattr(self.model, 'final_layer_norm'):
+                normalized_state = self.model.final_layer_norm(last_hidden_state)
+                last_hidden_state = (1 - self.norm_strength) * last_hidden_state + self.norm_strength * normalized_state
         else:
             last_hidden_state = outputs[self.output_key]
 
