@@ -1,4 +1,4 @@
-# ComfyUI wrapper nodes for [HunyuanVideo](https://github.com/Tencent/HunyuanVideo)
+# ("Extended") ComfyUI wrapper nodes for [HunyuanVideo](https://github.com/Tencent/HunyuanVideo)
 
 ## WORK IN PROGRESS
 
