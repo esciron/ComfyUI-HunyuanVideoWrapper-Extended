@@ -3,7 +3,7 @@
 ## WORK IN PROGRESS
 
 Experimental DownloadAndLoadHyVideoTextEncoder Node:
-- Load model from LLM folder.
+- Get models from LLM folder.
 - Norm "Slider".
 - Support for any llama model type LLM.
 - Support for LLava and mLLava model_type.
