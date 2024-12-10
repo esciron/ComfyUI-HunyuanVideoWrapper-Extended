@@ -8,6 +8,8 @@ Experimental DownloadAndLoadHyVideoTextEncoder Node:
 - Support for any llama model type LLM.
 - Support for LLava and mLLava model_type.
 
+To install new LLMs for the text encoder, go to ComfyUI\models\LLM - open cmd and paste the git link from the model's huggingface page. Ex: git clone https://huggingface.co/Kijai/llava-llama-3-8b-text-encoder-tokenizer
+
 # Update
 
 Scaled dot product attention (sdpa) should now be working (only tested on Windows, torch 2.5.1+cu124 on 4090), sageattention is still recommended for speed, but should not be necessary anymore making installation much easier.
