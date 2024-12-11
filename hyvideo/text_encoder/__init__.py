@@ -61,6 +61,13 @@ def load_text_encoder(
             torch_dtype=dtype,
             quantization_config=quantization_config
         )
+    elif model_type == "mistral":
+        from transformers import MistralForCausalLM
+        text_encoder = MistralForCausalLM.from_pretrained(
+            text_encoder_path,
+            torch_dtype=dtype,
+            quantization_config=quantization_config
+        )
     else:
         raise ValueError(f"Unsupported text encoder type: {model_type}")
 
@@ -76,6 +83,7 @@ def load_text_encoder(
         text_encoder = text_encoder.to(device)
 
     return text_encoder, text_encoder_path
+
 
 def load_tokenizer(
     tokenizer_type, tokenizer_path=None, padding_side="right", logger=None
@@ -99,7 +107,7 @@ def load_tokenizer(
         tokenizer = processor.tokenizer
     elif model_type == "clip":
         tokenizer = CLIPTokenizer.from_pretrained(tokenizer_path, max_length=77)
-    elif model_type == "llm" or model_type == "llama" or model_type == "mllama":
+    elif model_type == "llm" or model_type == "llama" or model_type == "mllama" or model_type == "mistral":
         tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_path, padding_side=padding_side
         )
@@ -111,7 +119,6 @@ def load_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
 
     return tokenizer, tokenizer_path
-
 
 
 @dataclass
@@ -214,7 +221,7 @@ class TextEncoder(nn.Module):
             self.output_key = output_key or "last_hidden_state"
         elif "clip" in text_encoder_type:
             self.output_key = output_key or "pooler_output"
-        elif "llm" in text_encoder_type or "glm" in text_encoder_type or "llama" in text_encoder_type or "mllama" in text_encoder_type:
+        elif "llm" in text_encoder_type or "glm" in text_encoder_type or "llama" in text_encoder_type or "mllama" in text_encoder_type or "mistral" in text_encoder_type:
             self.output_key = output_key or "last_hidden_state"
         elif "llava" in text_encoder_type:
             self.output_key = output_key or "last_hidden_state"
