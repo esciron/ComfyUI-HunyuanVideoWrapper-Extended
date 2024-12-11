@@ -7,6 +7,7 @@ Experimental DownloadAndLoadHyVideoTextEncoder Node:
 - Norm "Slider".
 - Support for any llama model type LLM.
 - Support for LLava and mLLava model_type.
+- Support for Mistral model_type.
 
 # Update
 
